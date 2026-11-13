@@ -61,6 +61,7 @@ Product rules and conventions are in [CLAUDE.md](CLAUDE.md). Read them before co
 | `npm test`             | Run Vitest once                              |
 | `npm run test:watch`   | Run Vitest in watch mode                     |
 | `npm run check`        | Typecheck, lint, format check, and tests     |
+| `npm run build:places` | Re-download GeoNames and rebuild place data  |
 
 ## Project layout
 
@@ -68,12 +69,26 @@ Product rules and conventions are in [CLAUDE.md](CLAUDE.md). Read them before co
 app/              Pages (Next.js App Router)
 app/api/          Route handlers (server-side; the only place routing providers are called from)
 lib/routing/      RoutingProvider interface and provider implementations (Transitland, MOTIS)
-lib/places/       Place search and geocoding
+lib/places/       City search over GeoNames data (server-only entry: lib/places/index.ts)
 lib/analytics/    PostHog wrapper (city-level data only)
 lib/time/         Timezone and date handling
 components/       React components
+scripts/          Build-time scripts (run directly with Node 24)
 tests/            Vitest tests (*.test.ts / *.test.tsx)
 ```
+
+## Place data
+
+City search uses the GeoNames `cities1000` dump: US places with population over 1,000, plus county seats. The data is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), which requires attribution. The site footer ([components/SiteFooter.tsx](components/SiteFooter.tsx)) provides it, so keep the footer on every page.
+
+The generated file `lib/places/data/us-places.json` is committed, so builds never depend on GeoNames being up. To refresh it:
+
+```bash
+npm run build:places             # downloads into .cache/geonames (gitignored)
+npm run build:places -- --cached # rebuilds from the cached download
+```
+
+The search API is `GET /api/places?q=<text>`, which returns at most 8 results ranked by match quality, then population.
 
 Tests run in a Node environment by default. For a component test, add `// @vitest-environment jsdom` at the top of the file.
 
