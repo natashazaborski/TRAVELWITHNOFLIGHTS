@@ -77,6 +77,8 @@ tests/            Vitest tests (*.test.ts / *.test.tsx)
 
 Tests run in a Node environment by default. For a component test, add `// @vitest-environment jsdom` at the top of the file.
 
+**Windows + Git Bash:** if every test fails with "Vitest failed to find the current suite", your shell is in the project through a lowercase drive path (`/c/Users/...`), which makes Vitest load itself twice. Run `cd "C:/Users/..."` (uppercase drive) or use PowerShell.
+
 ## Stack
 
 Next.js (App Router), TypeScript (strict), Tailwind CSS, MapLibre GL JS, PostHog, Upstash Redis, Vitest. Deployed on Vercel.
