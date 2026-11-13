@@ -15,7 +15,12 @@
     "check": "npm run typecheck && npm run lint && npm run format:check && npm run test"
   },
   "dependencies": {
+    "@opentelemetry/api-logs": "^0.223.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.301.2",
+    "@opentelemetry/resources": "^3.1.1",
+    "@opentelemetry/sdk-logs": "^3.1.1",
     "next": "16.4.6",
+    "posthog-js": "^1.449.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
