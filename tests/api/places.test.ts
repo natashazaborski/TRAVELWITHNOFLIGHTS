@@ -59,4 +59,25 @@ describe("GET /api/places", () => {
     const { res } = await get("?q=Portland");
     expect(res.headers.get("cache-control")).toContain("s-maxage=");
   });
+
+  it("looks places up by id, in order, skipping unknown ids", async () => {
+    const [portland] = (await get("?q=" + encodeURIComponent("Portland, OR")))
+      .body.results;
+    const [seattle] = (await get("?q=Seattle")).body.results;
+    const { res, body } = await get(`?id=${seattle!.id},${portland!.id}`);
+    expect(res.status).toBe(200);
+    expect(body.results.map((p) => p.label)).toEqual([
+      "Seattle, WA",
+      "Portland, OR",
+    ]);
+    const skipped = await get(`?id=999999999,${portland!.id}`);
+    expect(skipped.body.results.map((p) => p.label)).toEqual(["Portland, OR"]);
+  });
+
+  it.each(["?id=abc", "?id=1,2,3", "?id=1.5"])(
+    "rejects bad id lists: %s",
+    async (q) => {
+      expect((await get(q)).res.status).toBe(400);
+    },
+  );
 });

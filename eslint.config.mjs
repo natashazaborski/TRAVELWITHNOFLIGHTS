@@ -16,6 +16,11 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "coverage/**",
+    // Cloudflare (OpenNext / Wrangler) build output
+    ".open-next/**",
+    ".wrangler/**",
+    // Copied from node_modules (scripts/copy-maplibre-worker.mjs)
+    "public/maplibre-gl-worker.mjs",
   ]),
 ]);
 

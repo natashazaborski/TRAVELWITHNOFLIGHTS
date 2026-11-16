@@ -90,6 +90,30 @@ npm run build:places -- --cached # rebuilds from the cached download
 
 The search API is `GET /api/places?q=<text>`, which returns at most 8 results ranked by match quality, then population.
 
+## Trip planning
+
+`POST /api/plan` with `{ from: { id }, to: { id }, dateTime: "2026-11-17T09:00", mode: "leaveAt" | "arriveBy" }`. Place ids come from `/api/places`, and the server looks up their coordinates. `dateTime` is local wall time with no offset. For `leaveAt` it is interpreted in the departure place's timezone, and for `arriveBy` in the arrival place's timezone.
+
+| HTTP | `status`        | Meaning                                                           |
+| ---- | --------------- | ----------------------------------------------------------------- |
+| 200  | `ok`/`noRoutes` | A `PlanResult` (see `lib/routing/types.ts`)                       |
+| 400  | `invalid`       | Bad input, unknown place, or a date outside yesterday to +90 days |
+| 429  | `rateLimited`   | Over 10 searches a minute from this IP (`Retry-After` is set)     |
+| 503  | `busy`          | Transitland quota exhausted. Show "busy, try again".              |
+| 502  | `unavailable`   | Transitland failed or is misconfigured                            |
+
+All routing goes through `RoutingProvider` in `lib/routing` (`ROUTING_PROVIDER=transitland`; `motis` is not implemented yet). Plans are cached in Redis for 15 minutes. Every Transitland call is logged as a `transitland_usage` JSON line, with monthly totals in Redis under `usage:transitland:{routing|rest}:YYYY-MM`. Without Upstash credentials, caching, rate limiting, and usage totals are switched off and a `redis_disabled` line is logged.
+
+### Recorded Transitland responses
+
+`tests/routing/transitland-recorded.test.ts` replays real Transitland responses from `tests/fixtures/transitland/`. To record or refresh them, put a key in `.env.local`, then run:
+
+```bash
+RECORD_TRANSITLAND=1 npx vitest run tests/routing/transitland-recorded.test.ts
+```
+
+Recording uses about 6–20 plan requests (2 routing units each) and a few REST calls. The recorder refuses to save a file that contains the API key.
+
 Tests run in a Node environment by default. For a component test, add `// @vitest-environment jsdom` at the top of the file.
 
 **Windows + Git Bash:** if every test fails with "Vitest failed to find the current suite", your shell is in the project through a lowercase drive path (`/c/Users/...`), which makes Vitest load itself twice. Run `cd "C:/Users/..."` (uppercase drive) or use PowerShell.

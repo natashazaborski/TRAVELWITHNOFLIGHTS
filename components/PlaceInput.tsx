@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type Ref,
 } from "react";
 import type { PlaceResult, PlacesApiResponse } from "@/lib/places/types";
 
@@ -22,6 +23,10 @@ export interface PlaceInputProps {
   onChange: (place: PlaceResult | null) => void;
   placeholder?: string;
   debounceMs?: number;
+  /** Validation message shown under the field and linked to the input. */
+  error?: string;
+  /** Ref to the text input, e.g. to focus it after a validation error. */
+  ref?: Ref<HTMLInputElement>;
 }
 
 /**
@@ -37,10 +42,13 @@ export function PlaceInput({
   onChange,
   placeholder = "City or town",
   debounceMs = PLACE_SEARCH_DEBOUNCE_MS,
+  error,
+  ref,
 }: PlaceInputProps) {
   const id = useId();
   const inputId = `${id}-input`;
   const listboxId = `${id}-listbox`;
+  const errorId = `${id}-error`;
   const optionId = (i: number) => `${id}-option-${i}`;
 
   const [text, setText] = useState(value?.label ?? "");
@@ -54,6 +62,9 @@ export function PlaceInput({
   if (value !== syncedValue) {
     setSyncedValue(value);
     if (value) setText(value.label);
+    // Cleared by the parent (e.g. swapped with an empty field): clear the
+    // text too, unless the user is typing something new.
+    else if (syncedValue && text === syncedValue.label) setText("");
   }
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -194,53 +205,72 @@ export function PlaceInput({
 
   return (
     <div className="relative">
-      <label htmlFor={inputId} className="mb-1 block text-sm font-medium">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={inputId}
-          type="text"
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={showList}
-          aria-controls={listboxId}
-          aria-activedescendant={
-            showList && activeIndex >= 0 ? optionId(activeIndex) : undefined
-          }
-          aria-busy={status === "loading"}
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="words"
-          spellCheck={false}
-          enterKeyHint="search"
-          placeholder={placeholder}
-          value={text}
-          onChange={(e) => handleInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => {
-            if (!value && options.length > 0) setOpen(true);
-          }}
-          onBlur={(e) => {
-            if (listboxRef.current?.contains(e.relatedTarget as Node | null))
-              return;
-            setOpen(false);
-            setActiveIndex(-1);
-          }}
-          // 16px text stops iOS Safari from zooming in on focus.
-          className="min-h-12 w-full rounded-lg border border-gray-400 bg-white py-2 pr-12 pl-3 text-base text-gray-900 focus:border-blue-700 focus:ring-2 focus:ring-blue-700 focus:outline-none"
-        />
-        {text && (
-          <button
-            type="button"
-            onClick={clear}
-            aria-label={`Clear ${label}`}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-xl text-gray-600"
+      {/* A rounded road sign: water-blue panel with an off-white inset border
+          and the label as its legend. The yellow focus ring wraps the sign. */}
+      <div
+        className={`bg-water focus-within:outline-lane rounded-2xl p-1.5 focus-within:outline-3 focus-within:outline-offset-2 ${
+          error ? "outline-danger outline-3 outline-offset-2" : ""
+        }`}
+      >
+        <div className="border-ink relative rounded-xl border-2 px-3 pt-2 pb-1">
+          <label
+            htmlFor={inputId}
+            className="text-ink block text-xs font-bold tracking-[0.14em] uppercase"
           >
-            <span aria-hidden="true">×</span>
-          </button>
-        )}
+            {label}
+          </label>
+          <input
+            ref={ref}
+            id={inputId}
+            type="text"
+            role="combobox"
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : undefined}
+            aria-autocomplete="list"
+            aria-expanded={showList}
+            aria-controls={listboxId}
+            aria-activedescendant={
+              showList && activeIndex >= 0 ? optionId(activeIndex) : undefined
+            }
+            aria-busy={status === "loading"}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="words"
+            spellCheck={false}
+            enterKeyHint="search"
+            placeholder={placeholder}
+            value={text}
+            onChange={(e) => handleInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => {
+              if (!value && options.length > 0) setOpen(true);
+            }}
+            onBlur={(e) => {
+              if (listboxRef.current?.contains(e.relatedTarget as Node | null))
+                return;
+              setOpen(false);
+              setActiveIndex(-1);
+            }}
+            // 16px+ text stops iOS Safari from zooming in on focus.
+            className="text-ink placeholder:text-sign-hint min-h-11 w-full bg-transparent pr-11 text-lg font-semibold placeholder:font-normal focus:outline-none focus-visible:outline-none"
+          />
+          {text && (
+            <button
+              type="button"
+              onClick={clear}
+              aria-label={`Clear ${label}`}
+              className="text-ink hover:bg-ink/10 absolute top-1/2 right-1 flex size-11 -translate-y-1/2 items-center justify-center rounded-full text-2xl"
+            >
+              <span aria-hidden="true">×</span>
+            </button>
+          )}
+        </div>
       </div>
+      {error && (
+        <p id={errorId} className="text-danger mt-2 text-sm font-semibold">
+          {error}
+        </p>
+      )}
 
       <ul
         id={listboxId}
@@ -248,7 +278,7 @@ export function PlaceInput({
         role="listbox"
         aria-label={`${label} suggestions`}
         hidden={!showList || options.length === 0}
-        className="absolute z-10 mt-1 max-h-80 w-full overflow-auto rounded-lg border border-gray-300 bg-white shadow-lg"
+        className="border-line bg-surface absolute z-20 mt-2 max-h-80 w-full overflow-auto rounded-xl border py-1 shadow-lg shadow-black/40"
       >
         {options.map((place, i) => (
           <li
@@ -259,8 +289,10 @@ export function PlaceInput({
             // Keep focus in the input so the click (or tap) lands.
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => select(place)}
-            className={`flex min-h-11 cursor-pointer items-center px-3 py-2 text-base ${
-              i === activeIndex ? "bg-blue-100 text-blue-950" : "text-gray-900"
+            className={`text-ink flex min-h-11 cursor-pointer items-center border-l-4 px-3 py-2 text-base ${
+              i === activeIndex
+                ? "border-lane bg-raised"
+                : "hover:bg-raised border-transparent"
             }`}
           >
             {place.label}
@@ -270,7 +302,7 @@ export function PlaceInput({
 
       {showList && options.length === 0 && statusMessage && (
         <p
-          className="absolute z-10 mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-3 text-base text-gray-700 shadow-lg"
+          className="border-line bg-surface text-ink-muted absolute z-20 mt-2 w-full rounded-xl border px-3 py-3 text-base shadow-lg shadow-black/40"
           aria-hidden="true"
         >
           {statusMessage}

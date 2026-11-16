@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+/*
+ * Theme tokens. Values mirror lib/theme/palette.ts (the source of truth);
+ * tests/theme/palette.test.ts fails if they drift apart.
+ */
+@theme {
+  --color-asphalt: #1c1e21;
+  --color-surface: #26292d;
+  --color-raised: #31353a;
+  --color-line: #757b84;
+  --color-road: #4a4f56;
+  --color-ink: #f3efe6;
+  --color-ink-muted: #bdb8ae;
+  --color-lane: #f2c230;
+  --color-lane-bright: #f6d262;
+  --color-water: #174a7c;
+  --color-water-light: #7db7ea;
+  --color-sign-hint: #c9d7e6;
+  --color-go: #86c295;
+  --color-go-deep: #2e5e3b;
+  --color-danger: #ff8f85;
+}
+
+/* Overpass, loaded by next/font in app/layout.tsx. */
+@theme inline {
+  --font-sans: var(--font-overpass), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* In the base layer so component utilities (e.g. an input inside a sign
+   whose ring is drawn by its container) can override them. */
+@layer base {
+  :root {
+    /* Native date/time pickers and scrollbars in dark colours. */
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: var(--color-asphalt);
+    color: var(--color-ink);
+  }
+
+  /* One consistent, high-contrast focus indicator everywhere. */
+  :focus-visible {
+    outline: 3px solid var(--color-lane);
+    outline-offset: 2px;
+  }
+}
+
+/* Marching lane dashes on the decorative home-page band. Motion only for
+   people who have not asked to reduce it. */
+@media (prefers-reduced-motion: no-preference) {
+  .route-animate .route-dash {
+    animation: route-march 1.2s linear infinite;
+  }
+}
+@keyframes route-march {
+  to {
+    stroke-dashoffset: -14;
+  }
+}

@@ -11,3 +11,9 @@ CLAUDE.md
 AGENTS.md
 lib/places/data/
 .cache
+tests/fixtures/
+
+# Cloudflare build output
+.open-next
+.wrangler
+public/maplibre-gl-worker.mjs
